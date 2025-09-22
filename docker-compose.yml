@@ -11,13 +11,6 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-  app-redis:
-    image: redis:6.2-alpine
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - app-redis-data:/data
   app:
     build: .
     container_name: nextjs_app
@@ -27,11 +20,9 @@ services:
       - .:/app
     depends_on:
       - db
-      - app-redis # Adaugă Redis ca dependență
     environment:
       # Corectat host-ul de la `app-db-1` la `db`
       DATABASE_URL: postgresql://alex:parola1@db:5432/my_crims_db
-      REDIS_URL: redis://app-redis:6379
    # Serviciul pentru pgAdmin
   pgadmin:
     image: dpage/pgadmin4
@@ -53,27 +44,32 @@ services:
     depends_on:
       - db
   # Serviciul pentru baza de date Redis
-  redis-db:
+  redis:
     image: redis:7-alpine
-    restart: always
+    container_name: clan_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
 
-  # Serviciul pentru RedisInsight
-  redis-insight:
-    image: redislabs/redisinsight:latest
-    restart: always
+
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: nocodb
+    restart: unless-stopped
     ports:
-      - "8001:8001"
-    volumes:
-      - redis-insight-data:/db
+      - "8080:8080"           # UI la http://localhost:8080
+    environment:
+      - NC_PORT=8080
     depends_on:
-      - redis-db
+      - db
+    volumes:
+      - nocodb_data:/usr/app/data
 
 volumes:
   db_data:
-  app-redis-data:
-  redis-insight-data:
   redis-data:
+  nocodb_data:
+
+
