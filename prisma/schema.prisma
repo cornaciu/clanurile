@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// schema.prisma
+
+model User {
+  id           String      @id @default(uuid())
+  username     String      @unique
+  passwordHash String
+  level        Int         @default(1)
+  money        Int         @default(0)
+  health       Int         @default(100)
+  experience   Int         @default(0)
+  rank         String      @default("Noob")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  // Campuri pentru sistemul de lupta
+  wins         Int         @default(0)
+  losses       Int         @default(0)
+  last_attack  DateTime    @default(now())
+
+  // Noul camp pentru avatar
+  avatarUrl    String      @default("/avatars/default.png")
+  inventory    UserItem[]
+  quests       UserQuest[]
+
+  ownedTerritories MapTerritory[]
+
+}
+
+model Item {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String
+  type        String      // Ex: "consumable", "equipment", "key"
+  value       Int         // Valoare monetară
+  users       UserItem[]
+}
+
+model UserItem {
+  userId      String
+  itemId      String
+  quantity    Int         @default(0)
+  level       Int         @default(1)
+
+  user        User        @relation(fields: [userId], references: [id])
+  item        Item        @relation(fields: [itemId], references: [id])
+
+  @@id([userId, itemId])
+}
+
+model Quest {
+  id           String      @id @default(uuid())
+  title        String
+  description  String
+  rewardMoney  Int
+  rewardExp    Int
+  category     String      @default("general") // Adauga un camp pentru categorie
+  time         Int?        // Timp in minute, optional
+  difficulty   String?     // Dificultatea, optional
+  users        UserQuest[]
+  minLevel     Int         @default(1) // <<-- Adaugă acest câmp
+}
+
+model UserQuest {
+  id        String    @id @default(uuid())
+  userId    String
+  questId   String
+  completed Boolean   @default(false)
+  claimed   Boolean   @default(false)
+
+  user      User      @relation(fields: [userId], references: [id])
+  quest     Quest     @relation(fields: [questId], references: [id])
+  startedAt DateTime? // <<-- Adaugă acest câmp
+  @@unique([userId, questId])
+}
+model MapTerritory {
+  id              String      @id @default(uuid())
+  geoJsonId       String      @unique // Adaugă această linie pentru a stoca ID-ul din GeoJSON
+  name            String      @unique
+  description     String
+  location        String      
+  ownerId         String?
+  owner           User?       @relation(fields: [ownerId], references: [id])
+  last_conquered  DateTime    
+}
